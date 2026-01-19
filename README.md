@@ -51,8 +51,7 @@ Acidentes_Aviao/
 │  └─ etl_silver_to_gold.ipynb
 │
 ├─ docker/                                # Docker
-│  ├─ docker-compose.yml
-│  ├─Dockerfile
+│  └─ docker-compose.yml
 └─ README.md
 
 ```
