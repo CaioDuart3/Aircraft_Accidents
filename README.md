@@ -26,6 +26,16 @@ Desenvolvido como parte da disciplina de **Sistemas de Banco de Dados 2** na Uni
 - **Business Intelligence:** Construção de dashboards no Power BI para monitoramento e análise de KPIs de segurança, fabricantes e fases de voo.
 
 ----
+
+## Fonte dos Dados
+
+Utilizamos a base de dados histórica de acidentes aéreos disponibilizada no Kaggle. O dataset compila registros do *National Transportation Safety Board* (NTSB)
+
+* **Dataset:** Acidentes de Avião até 2022
+* **Plataforma:** Kaggle
+* **Link Original:** [Acesse aqui a base de dados](https://www.kaggle.com/datasets/mos3santos/acidentes-de-aviao-at-2023)
+----
+
 ## Estrutura do repositório
 ```
 Acidentes_Aviao/
@@ -84,6 +94,7 @@ Acidentes_Aviao/
       <td align="center"><a href="https://github.com/luisa12ll"><img src="https://avatars.githubusercontent.com/u/194189725?v=4" width="200px;" alt=""/><br /><sub><b>Luisa de Souza</b></sub></a><br />
     <td align="center"><a href="https://github.com/Marjoriemitzi"><img src="https://avatars.githubusercontent.com/u/165108208?v=4" width="200px;" alt=""/><br /><sub><b>⁠Marjorie Mitzi</b></sub></a><br />  
 </table>
+
 
 
 
