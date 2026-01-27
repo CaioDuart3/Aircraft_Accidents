@@ -86,7 +86,7 @@ WITH fase_ranking AS (
     FROM dw.fat_acc f
     JOIN dw.dim_flt_phs p ON f.srk_flt_phs = p.srk_flt_phs
     WHERE p.brd_phs_off_flt IS NOT NULL 
-      AND p.brd_phs_off_flt != 'UNKNOWN'
+      AND p.brd_phs_off_flt != 'UNKNOWN'   -- Precisa arrumar isso no etl, ainda tem muitos vazios
     GROUP BY p.brd_phs_off_flt
 )
 SELECT * FROM fase_ranking
