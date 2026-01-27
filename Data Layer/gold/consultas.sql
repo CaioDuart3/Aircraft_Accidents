@@ -1,19 +1,27 @@
 -- ============================================================================
--- 1. MAPA GERAL DE ACIDENTES
+-- 1. MAPA MUNDI GLOBAL (VIA NOME DA LOCALIDADE)
 -- ============================================================================
--- Objetivo: Listar cada acidente com suas coordenadas geográficas para adicionar no mapa.
+-- Objetivo: Criar uma coluna de localização
 SELECT 
-    g.lat AS latitude,
-    g.lon AS longitude,
+    CONCAT(g.loc, ', ', g.ctr) AS localizacao_mapa,
+    
     g.loc AS cidade,
     g.ctr AS pais,
+    t.evt_dat AS data_acidente,
+    CONCAT(a.mak, ' ', a.mod) AS aeronave,
     s.inj_sev AS severidade,
     f.tot_fat_inj AS total_fatais
+
 FROM dw.fat_acc f
 JOIN dw.dim_geo g ON f.srk_geo = g.srk_geo
 JOIN dw.dim_sev s ON f.srk_sev = s.srk_sev
-WHERE g.lat IS NOT NULL 
-  AND g.lat != 0;
+JOIN dw.dim_tim t ON f.srk_tim = t.srk_tim 
+JOIN dw.dim_arc a ON f.srk_arc = a.srk_arc 
+
+WHERE g.loc IS NOT NULL 
+  AND g.ctr IS NOT NULL
+  AND g.loc != '' 
+  AND g.ctr != '';
 
 -- ============================================================================
 -- 2.RELATÓRIO COM NÚMEROS GERAIS 
@@ -27,22 +35,9 @@ SELECT
 FROM dw.fat_acc f;
 
 -- ============================================================================
--- 3. TENDÊNCIA TEMPORAL (EVOLUÇÃO ANUAL)
+-- 3 TENDÊNCIA TEMPORAL DADOS CONSISTENTES DESDE 1982
 -- ============================================================================
--- Objetivo: Gráfico de linha mostrando a evolução dos acidentes por ano.
-SELECT 
-    CAST(EXTRACT(YEAR FROM t.evt_dat) AS INTEGER) AS ano,
-    COUNT(f.evt_ide) AS qtd_acidentes,
-    SUM(f.tot_fat_inj) AS qtd_fatais
-FROM dw.fat_acc f
-JOIN dw.dim_tim t ON f.srk_tim = t.srk_tim
-GROUP BY CAST(EXTRACT(YEAR FROM t.evt_dat) AS INTEGER)
-ORDER BY ano;
-
--- ============================================================================
--- 3.1 TENDÊNCIA TEMPORAL DADOS CONSISTENTES DESDE 1982
--- ============================================================================
--- Objetivo: Gráfico de linha mostrando a evolução a partir de 1982, início da série consistente.
+-- Objetivo: Mostrar a evolução a partir de 1982, início da série consistente.
 SELECT 
     CAST(EXTRACT(YEAR FROM t.evt_dat) AS INTEGER) AS ano,
     COUNT(f.evt_ide) AS qtd_acidentes,
@@ -54,28 +49,7 @@ GROUP BY CAST(EXTRACT(YEAR FROM t.evt_dat) AS INTEGER)
 ORDER BY ano;
 
 -- ============================================================================
--- 4. FATOR CLIMÁTICO (VMC vs IMC)
--- ============================================================================
--- Objetivo: Gráfico de Rosca comparando voo visual vs instrumentos.
-WITH weather_stats AS (
-    SELECT 
-        w.wth_con AS condicao,
-        COUNT(f.evt_ide) AS total_eventos,
-        SUM(f.tot_fat_inj) AS total_mortes
-    FROM dw.fat_acc f
-    JOIN dw.dim_wth w ON f.srk_wth = w.srk_wth
-    WHERE w.wth_con IN ('VMC', 'IMC') 
-    GROUP BY w.wth_con
-)
-SELECT 
-    condicao,
-    total_eventos,
-    total_mortes,
-    ROUND((CAST(total_mortes AS DECIMAL) / NULLIF(total_eventos, 0)) * 100, 2) AS pct_letalidade
-FROM weather_stats;
-
--- ============================================================================
--- 5. FASES DE VOO CRÍTICAS (RANKING) - [CTE]
+-- 4. FASES DE VOO CRÍTICAS (RANKING)
 -- ============================================================================
 -- Objetivo: identificar o momento mais perigoso.
 WITH fase_ranking AS (
@@ -86,7 +60,7 @@ WITH fase_ranking AS (
     FROM dw.fat_acc f
     JOIN dw.dim_flt_phs p ON f.srk_flt_phs = p.srk_flt_phs
     WHERE p.brd_phs_off_flt IS NOT NULL 
-      AND p.brd_phs_off_flt != 'UNKNOWN'   -- Precisa arrumar isso no etl, ainda tem muitos vazios
+      AND p.brd_phs_off_flt != 'UNKNOWN'  
     GROUP BY p.brd_phs_off_flt
 )
 SELECT * FROM fase_ranking
@@ -94,7 +68,7 @@ ORDER BY ocorrencias DESC
 LIMIT 10;
 
 -- ============================================================================
--- 6. RANKING DE FABRICANTES (TOP 10)
+-- 5. RANKING DE FABRICANTES (TOP 10)
 -- ============================================================================
 -- Objetivo: Listar os fabricantes com mais ocorrências.
 WITH ranking_fab AS (
@@ -114,7 +88,7 @@ FROM ranking_fab
 WHERE rank_pos <= 10;
 
 -- ============================================================================
--- 7. SAZONALIDADE MENSAL 
+-- 6. SAZONALIDADE MENSAL 
 -- ============================================================================
 -- Objetivo: Identificar se existem meses mais perigosos no ano.
 WITH mensal AS (
@@ -133,7 +107,7 @@ FROM mensal
 ORDER BY num_mes;
 
 -- ============================================================================
--- 8. MATRIZ DE RISCO (TOP 5 FINALIDADES x SEVERIDADE)
+-- 7. MATRIZ DE RISCO (TOP 5 FINALIDADES x SEVERIDADE)
 -- ============================================================================
 -- Objetivo: Heatmap focado nas categorias principais para comparar risco real.
 SELECT 
@@ -154,37 +128,9 @@ GROUP BY o.prp_off_flt,
          END
 ORDER BY quantidade DESC;
 
--- ============================================================================
--- 9. PERFIL DE CONSTRUÇÃO (AMADOR VS PROFISSIONAL)
--- ============================================================================
--- Objetivo: Comparativo das aeronaves amadoras vs certificadas.
-SELECT 
-    CASE 
-        WHEN a.ama_blt = 'Yes' OR a.ama_blt = 'true' THEN 'Amador/Experimental' 
-        ELSE 'Certificado/Fabrica' 
-    END AS tipo_construcao,
-    COUNT(f.evt_ide) AS total_eventos
-FROM dw.fat_acc f
-JOIN dw.dim_arc a ON f.srk_arc = a.srk_arc
-GROUP BY a.ama_blt;
 
 -- ============================================================================
--- 10. CORRELAÇÃO MOTORES E SOBREVIVÊNCIA
--- ============================================================================
--- Objetivo: Analisar se mais motores significam mais sobreviventes.
-SELECT 
-    a.num_off_eng AS qtd_motores,
-    COUNT(f.evt_ide) AS acidentes,
-    SUM(f.tot_uni) AS total_ilesos
-FROM dw.fat_acc f
-JOIN dw.dim_arc a ON f.srk_arc = a.srk_arc
-WHERE a.num_off_eng IS NOT NULL 
-  AND a.num_off_eng <= 4
-GROUP BY a.num_off_eng
-ORDER BY a.num_off_eng;
-
--- ============================================================================
--- 11. ANÁLISE "WEEKEND WARRIOR" 
+-- 8. ANÁLISE "WEEKEND WARRIOR" 
 -- ============================================================================
 -- Objetivo: Comparação do Dia Útil vs Fim de Semana.
 WITH analise_semanal AS (
@@ -213,32 +159,7 @@ ORDER BY num_dia;
 
 
 -- ============================================================================
--- 12. TOP LOCALIDADES (RANKING)
--- ============================================================================
--- Objetivo: Identificar as cidades com maior concentração de acidentes nos EUA.
-WITH geo_rank AS (
-    SELECT 
-        g.ctr AS pais,
-        g.loc AS localidade,
-        COUNT(f.evt_ide) AS total_acidentes,
-        SUM(f.tot_fat_inj) AS total_mortos,
-        RANK() OVER (ORDER BY COUNT(f.evt_ide) DESC) AS ranking
-    FROM dw.fat_acc f
-    JOIN dw.dim_geo g ON f.srk_geo = g.srk_geo
-    WHERE g.ctr = 'United States' 
-      AND g.loc IS NOT NULL
-    GROUP BY g.ctr, g.loc
-)
-SELECT 
-    localidade,
-    total_acidentes,
-    total_mortos
-FROM geo_rank
-WHERE ranking <= 10
-ORDER BY total_acidentes DESC;
-
--- ============================================================================
--- 13. CONFIABILIDADE TECNOLÓGICA (TIPO DE MOTOR) 
+-- 9. CONFIABILIDADE TECNOLÓGICA (TIPO DE MOTOR) 
 -- ============================================================================
 -- Objetivo: Comparar risco fatal entre tipos de motor 
 WITH motor_stats AS (
@@ -249,7 +170,7 @@ WITH motor_stats AS (
         SUM(f.tot_uni + f.tot_fat_inj + f.tot_ser_inj + f.tot_min_inj) AS total_pessoas
     FROM dw.fat_acc f
     JOIN dw.dim_arc a ON f.srk_arc = a.srk_arc
-    WHERE a.eng_typ NOT IN ('UNKNOWN' ) -- Precisa arrumar isso no etl, ainda tem muitos vazios
+    WHERE a.eng_typ NOT IN ('UNKNOWN' )
     GROUP BY a.eng_typ
 )
 SELECT 
@@ -261,24 +182,9 @@ FROM motor_stats
 WHERE qtd_eventos > 50 
 ORDER BY pct_risco_fatal DESC;
 
--- ============================================================================
--- 14. DANO DA AERONAVE VS FATALIDADE
--- ============================================================================
--- Objetivo: Analisar correlação entre dano material (Destruído/Substancial) e mortes.
-SELECT 
-    a.arc_dam AS dano_aeronave,
-    COUNT(f.evt_ide) AS total_acidentes,
-    SUM(f.tot_fat_inj) AS total_mortos,
-    SUM(f.tot_uni) AS total_ilesos
-FROM dw.fat_acc f
-JOIN dw.dim_arc a ON f.srk_arc = a.srk_arc
-WHERE a.arc_dam IS NOT NULL 
-  AND a.arc_dam != 'UNKNOWN' -- Precisa arrumar isso no etl, ainda tem muitos vazios
-GROUP BY a.arc_dam
-ORDER BY total_acidentes DESC;
 
 -- ============================================================================
--- 15. RISCO POR CATEGORIA DE AERONAVE
+-- 10. RISCO POR CATEGORIA DE AERONAVE
 -- ============================================================================
 -- Objetivo: Comparar volume e letalidade entre diferentes categorias
 SELECT 
@@ -290,7 +196,7 @@ SELECT
 FROM dw.fat_acc f
 JOIN dw.dim_arc a ON f.srk_arc = a.srk_arc
 WHERE a.arc_cat IS NOT NULL 
-  AND a.arc_cat != 'UNKNOWN' -- Precisa arrumar isso no etl, ainda tem muitos vazios
+  AND a.arc_cat != 'UNKNOWN' 
 GROUP BY a.arc_cat
-HAVING COUNT(f.evt_ide) > 50 -- Filtra categorias raras (ex: Foguetes, Balões) para limpar o gráfico
+HAVING COUNT(f.evt_ide) > 50
 ORDER BY total_acidentes DESC;
