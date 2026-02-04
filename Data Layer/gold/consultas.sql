@@ -29,10 +29,9 @@ WHERE g.loc IS NOT NULL
 -- Objetivo: Cartões com os números totais do relatório.
 SELECT 
     COUNT(f.evt_ide) AS total_eventos,
+    SUM(f.tot_fat_inj + f.tot_ser_inj + f.tot_min_inj + f.tot_uni) AS total_vitimas,
     SUM(f.tot_fat_inj) AS total_mortes,
-    SUM(f.tot_uni) AS total_ilesos,
-    ROUND(AVG(CAST(f.tot_fat_inj AS DECIMAL) / NULLIF(f.tot_fat_inj + f.tot_ser_inj + f.tot_min_inj + f.tot_uni, 0)) * 100, 2) AS taxa_letalidade
-FROM dw.fat_acc f;
+    ROUND((SUM(CAST(f.tot_fat_inj AS DECIMAL)) /  NULLIF(SUM(f.tot_fat_inj + f.tot_ser_inj + f.tot_min_inj + f.tot_uni), 0)) * 100, 2) AS taxa_letalidade_geral FROM dw.fat_acc f
 
 -- ============================================================================
 -- 3 TENDÊNCIA TEMPORAL DADOS CONSISTENTES DESDE 1982
