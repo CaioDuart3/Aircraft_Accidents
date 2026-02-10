@@ -95,7 +95,7 @@ Acidentes_Aviao/
 
 ---
 
-## Team Members – Group 15
+## Team Members 
 
 <table>
     <tr>
@@ -113,3 +113,4 @@ Se quiser, posso:
 * adaptar o inglês para um tom **mais acadêmico** ou **mais comercial**,
 * revisar termos técnicos (ex: BI / Data Engineering best practices),
 * ou ajustar o README para **recrutadores internacionais** ✨
+
