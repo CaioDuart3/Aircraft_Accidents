@@ -106,11 +106,6 @@ Acidentes_Aviao/
     <td align="center"><a href="https://github.com/Marjoriemitzi"><img src="https://avatars.githubusercontent.com/u/165108208?v=4" width="200px;" alt=""/><br /><sub><b>Marjorie Mitzi</b></sub></a><br />  
 </table>
 
----
 
-Se quiser, posso:
 
-* adaptar o inglês para um tom **mais acadêmico** ou **mais comercial**,
-* revisar termos técnicos (ex: BI / Data Engineering best practices),
-* ou ajustar o README para **recrutadores internacionais** ✨
 
